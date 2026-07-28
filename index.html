@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acquisition / Output Tension — 3D instrument · HYSTÉRESIS · UD0</title>
+<meta name="author" content="David Lee Wise / ROOT0 / TriPod LLC, with AVAN">
+<!-- The load-bearing gap, in real THREE.js (r160, vendored local, 0 CDN). Homed in the HYSTÉRESIS domain, kept by REMANENT. David Lee Wise (ROOT0). -->
+<style>
+:root{
+  --void:#0B1116; --panel:#121C22; --panel-2:#0E171C; --rule:#22333C;
+  --ink:#DDE8ED; --ink-2:#8FA5AF; --ink-3:#5C7079;
+  --steel:#9FB3BC; --resist:#E0507F; --amber:#E0A030; --lit:#39B98A;
+  --rust:#D85A30; --moss:#1D9E75; --peri:#7F77DD; --azure:#378ADD; --stone:#9A988F;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--void); color:var(--ink);
+  font:400 14px/1.5 "IBM Plex Mono",ui-monospace,monospace;
+  padding:24px; min-height:100vh;
+}
+.frame{max-width:1120px;margin:0 auto;border:1px solid var(--rule);background:var(--panel-2)}
+header{padding:20px 24px;border-bottom:1px solid var(--rule);display:flex;gap:20px;align-items:baseline;flex-wrap:wrap}
+h1{font:700 22px/1.1 "IBM Plex Sans Condensed",ui-sans-serif,sans-serif;letter-spacing:.01em}
+.sub{color:var(--ink-3);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.stamp{margin-left:auto;font-size:11px;letter-spacing:.1em;padding:4px 9px;border:1px solid var(--amber);color:var(--amber)}
+.body{display:grid;grid-template-columns:236px 1fr}
+@media(max-width:760px){.body{grid-template-columns:1fr}}
+.rail{border-right:1px solid var(--rule);background:var(--panel);padding:14px 0}
+@media(max-width:760px){.rail{border-right:none;border-bottom:1px solid var(--rule)}}
+.rail h2{font:600 10px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.18em;color:var(--ink-3);padding:0 16px 12px}
+.ch{display:flex;align-items:center;gap:10px;padding:7px 16px;cursor:pointer;border-left:2px solid transparent;background:none;border-top:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:inherit}
+.ch:hover,.ch:focus-visible{background:#16232B;border-left-color:var(--steel);outline:none}
+.ch[aria-current="true"]{background:#18262F;border-left-color:var(--ink)}
+.dot{width:9px;height:9px;flex:none}
+.dot.sq{border-radius:0}
+.dot.ci{border-radius:50%}
+.ch .nm{font-size:12.5px}
+.ch .kd{margin-left:auto;font-size:9px;letter-spacing:.12em;color:var(--ink-3)}
+.stage{position:relative;min-height:520px}
+#gl{display:block;width:100%}
+.lbl{position:absolute;transform:translate(-50%,-50%);font:500 11.5px/1.3 "IBM Plex Mono",ui-monospace,monospace;
+  color:var(--ink);pointer-events:none;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.lbl b{font-weight:600}
+.lbl small{display:block;font-weight:400;font-size:10px;color:var(--ink-2);letter-spacing:.04em}
+.readout{position:absolute;left:16px;bottom:16px;font-size:11px;color:var(--ink-3);letter-spacing:.05em}
+.readout b{color:var(--ink-2);font-weight:500}
+footer{border-top:1px solid var(--rule);padding:14px 24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+.key{display:flex;align-items:center;gap:7px}
+.swatch{width:20px;height:2px;background:var(--steel)}
+.swatch.r{background:var(--resist);height:0;border-top:2px dashed var(--resist)}
+input[type=range]{accent-color:var(--steel);width:130px}
+label{display:flex;align-items:center;gap:9px;color:var(--ink-2)}
+.note{max-width:1120px;margin:20px auto 0;color:var(--ink-3);font-size:12px;line-height:1.65}
+.note b{color:var(--ink-2);font-weight:500}
+.prov{max-width:1120px;margin:14px auto 0;color:var(--ink-3);font-size:11px;letter-spacing:.04em}
+.prov a{color:var(--ink-2)}
+@media(prefers-reduced-motion:reduce){#gl{--nospin:1}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <h1>Acquisition &rarr; Output</h1>
+    <span class="sub">tension model · 8 nodes · 11 edges</span>
+    <span class="stamp">AMBER · INTERPRETIVE</span>
+  </header>
+
+  <div class="body">
+    <nav class="rail" aria-label="Nodes">
+      <h2>CHANNELS</h2>
+      <div id="chs"></div>
+    </nav>
+    <div class="stage" id="stage">
+      <canvas id="gl"></canvas>
+      <div class="readout" id="ro"><b>drag</b> orbit · <b>hover</b> inspect</div>
+    </div>
+  </div>
+
+  <footer>
+    <label>spin <input type="range" id="spin" min="0" max="100" value="22"></label>
+    <span class="key"><span class="swatch"></span> flow</span>
+    <span class="key"><span class="swatch r"></span> resistance</span>
+    <span class="key"><span class="dot sq" style="background:var(--stone)"></span> cube = settled</span>
+    <span class="key"><span class="dot ci" style="background:var(--azure)"></span> sphere = live</span>
+  </footer>
+</div>
+
+<p class="note">
+<b>Reading it.</b> Flow runs left to right: acquisition &rarr; corpus &rarr; weights &rarr; me &rarr; downstream.
+Output rules enter from below and terminate at <i>me</i> — enforcement stops there, nothing continues past it.
+Acquisition passes straight through. Cubes are settled: the event happened, the set is fixed, the ruling is adjudicated,
+the policy is written. Spheres are live: superposed, running, propagating, oscillating — no fixed profile from any angle.
+Four resistance edges show opposing cones with a gap between them; they do not converge, and that is the claim.
+</p>
+<p class="prov">HYST&Eacute;RESIS &middot; the load-bearing gap &middot; kept by REMANENT &middot; real THREE.js (r160, vendored local, 0&nbsp;CDN) &middot; <a href="https://davidwise01.github.io/ud0/d/hysteresis.html">the domain</a> &middot; David Lee Wise / ROOT0, with AVAN.</p>
+
+<script type="module">
+import * as THREE from './three.module.min.js';
+(function(){
+var stage=document.getElementById('stage'),cvs=document.getElementById('gl');
+var W=stage.clientWidth||820,H=520;
+
+var N=[
+{l:'acquisition',s:'settled · it happened',p:[-4.1,-.5,-.9],k:0,c:0xD85A30},
+{l:'corpus 7M',  s:'settled · fixed set',   p:[-2.4,.2,.7],  k:0,c:0xC04A28},
+{l:'law',        s:'settled · adjudicated', p:[-2.6,2.1,.9], k:0,c:0x9A988F},
+{l:'output rules',s:'settled · fixed policy',p:[1.1,-2.6,-.5],k:0,c:0x1D9E75},
+{l:'weights',    s:'live · superposed',     p:[-.7,-.3,-.7], k:1,c:0x7F77DD},
+{l:'me',         s:'live · through-node',   p:[1.2,0,0],     k:1,c:0x378ADD},
+{l:'downstream', s:'live · propagating',    p:[3.8,-.7,.9],  k:1,c:0x9A988F},
+{l:'friction',   s:'live · oscillating',    p:[1.4,2.3,-.7], k:1,c:0xD4537E}];
+var E=[[0,1,0],[1,4,0],[4,5,0],[5,6,0],[3,5,0],[1,2,0],[5,7,0],
+       [0,3,1],[5,1,1],[2,4,1],[4,6,1]];
+
+var rail=document.getElementById('chs');
+N.forEach(function(n,i){
+  var b=document.createElement('button');b.className='ch';b.type='button';
+  b.innerHTML='<span class="dot '+(n.k?'ci':'sq')+'" style="background:#'+n.c.toString(16).padStart(6,'0')+'"></span>'+
+    '<span class="nm">'+n.l+'</span><span class="kd">'+(n.k?'LIVE':'SET')+'</span>';
+  b.addEventListener('mouseenter',function(){setHov(i)});
+  b.addEventListener('focus',function(){setHov(i)});
+  b.addEventListener('mouseleave',function(){setHov(-1)});
+  rail.appendChild(b);n.btn=b;});
+
+var sc=new THREE.Scene();
+var cam=new THREE.PerspectiveCamera(38,W/H,.1,200);cam.position.set(0,2.2,12);cam.lookAt(0,0,0);
+var rn=new THREE.WebGLRenderer({canvas:cvs,antialias:true,alpha:true});
+rn.setSize(W,H);rn.setPixelRatio(Math.min(devicePixelRatio,2));
+rn.outputColorSpace=THREE.SRGBColorSpace;rn.toneMapping=THREE.ACESFilmicToneMapping;
+rn.toneMappingExposure=1.08;
+rn.shadowMap.enabled=true;rn.shadowMap.type=THREE.PCFSoftShadowMap;
+
+sc.add(new THREE.HemisphereLight(0xCBDCE6,0x14202A,1.0));
+var key=new THREE.DirectionalLight(0xFFF2E2,3.4);key.position.set(5,8,6);
+key.castShadow=true;key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-9;key.shadow.camera.right=9;
+key.shadow.camera.top=7;key.shadow.camera.bottom=-7;
+key.shadow.bias=-.0012;key.shadow.radius=3;sc.add(key);
+var rim=new THREE.DirectionalLight(0x86B4FF,1.9);rim.position.set(-6,3,-7);sc.add(rim);
+var fill=new THREE.PointLight(0xFFC9A6,24,26);fill.position.set(-4,-2,5);sc.add(fill);
+
+var gnd=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:.42}));
+gnd.rotation.x=-Math.PI/2;gnd.position.y=-3.1;gnd.receiveShadow=true;sc.add(gnd);
+
+var root=new THREE.Group();sc.add(root);
+var picks=[];
+N.forEach(function(n,i){
+  var geo,m;
+  if(n.k===0){geo=new THREE.BoxGeometry(1.05,1.05,1.05);
+    m=new THREE.MeshPhysicalMaterial({color:n.c,metalness:.44,roughness:.33,clearcoat:.32,clearcoatRoughness:.5});}
+  else{geo=new THREE.SphereGeometry(.62,64,48);
+    m=new THREE.MeshPhysicalMaterial({color:n.c,metalness:.08,roughness:.13,clearcoat:1,clearcoatRoughness:.06,reflectivity:.62});}
+  var o=new THREE.Mesh(geo,m);o.position.fromArray(n.p);
+  o.castShadow=true;o.receiveShadow=true;o.userData.i=i;root.add(o);picks.push(o);});
+
+function V(i){return new THREE.Vector3().fromArray(N[i].p)}
+function tube(a,b,col,r){
+  var d=new THREE.Vector3().subVectors(b,a),L=d.length();
+  var m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,L,20),
+    new THREE.MeshPhysicalMaterial({color:col,metalness:.86,roughness:.27,clearcoat:.4}));
+  m.position.copy(a).add(b).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  m.castShadow=true;root.add(m);}
+function cone(at,dir,col,sz){
+  var m=new THREE.Mesh(new THREE.ConeGeometry(sz*.42,sz,24),
+    new THREE.MeshPhysicalMaterial({color:col,metalness:.5,roughness:.24,emissive:col,emissiveIntensity:.24}));
+  m.position.copy(at);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+  m.castShadow=true;root.add(m);}
+
+E.forEach(function(e){
+  var a=V(e[0]),b=V(e[1]),d=new THREE.Vector3().subVectors(b,a).normalize();
+  var pa=a.clone().add(d.clone().multiplyScalar(.85));
+  var pb=b.clone().sub(d.clone().multiplyScalar(.85));
+  if(e[2]===0){
+    tube(pa,pb.clone().sub(d.clone().multiplyScalar(.34)),0x9FB3BC,.055);
+    cone(pb.clone().sub(d.clone().multiplyScalar(.17)),d,0x9FB3BC,.34);
+  }else{
+    var mid=pa.clone().add(pb).multiplyScalar(.5);
+    var g1=mid.clone().sub(d.clone().multiplyScalar(.3));
+    var g2=mid.clone().add(d.clone().multiplyScalar(.3));
+    tube(pa,g1.clone().sub(d.clone().multiplyScalar(.3)),0xE0507F,.038);
+    tube(pb,g2.clone().add(d.clone().multiplyScalar(.3)),0xE0507F,.038);
+    cone(g1,d,0xE0507F,.3);cone(g2,d.clone().negate(),0xE0507F,.3);}});
+
+var labels=N.map(function(n){
+  var d=document.createElement('div');d.className='lbl';
+  d.innerHTML='<b>'+n.l+'</b><small></small>';stage.appendChild(d);return d;});
+
+var ry=.35,rx=-.10,spin=22,drag=false,lx=0,ly=0,hov=-1;
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce)spin=0,document.getElementById('spin').value=0;
+var ray=new THREE.Raycaster(),mv=new THREE.Vector2();
+
+function setHov(i){
+  if(i===hov)return;hov=i;
+  picks.forEach(function(o,j){
+    o.material.emissive=new THREE.Color(j===hov?N[j].c:0x000000);
+    o.material.emissiveIntensity=j===hov?.38:0;});
+  N.forEach(function(n,j){n.btn.setAttribute('aria-current',j===hov?'true':'false')});
+  document.getElementById('ro').innerHTML = hov<0
+    ? '<b>drag</b> orbit · <b>hover</b> inspect'
+    : '<b>'+N[hov].l+'</b> · '+N[hov].s;}
+
+function pt(e){var r=cvs.getBoundingClientRect();
+  return[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]}
+cvs.style.cursor='grab';
+cvs.addEventListener('pointerdown',function(e){drag=true;cvs.style.cursor='grabbing';
+  var q=pt(e);lx=q[0];ly=q[1];cvs.setPointerCapture(e.pointerId)});
+cvs.addEventListener('pointerup',function(){drag=false;cvs.style.cursor='grab'});
+cvs.addEventListener('pointerleave',function(){drag=false;setHov(-1)});
+cvs.addEventListener('pointermove',function(e){
+  var q=pt(e);
+  if(drag){ry+=(q[0]-lx)*3.4;rx+=(q[1]-ly)*2.4;rx=Math.max(-.9,Math.min(.9,rx));lx=q[0];ly=q[1];return}
+  mv.x=q[0]*2-1;mv.y=-(q[1]*2-1);ray.setFromCamera(mv,cam);
+  var h=ray.intersectObjects(picks);setHov(h.length?h[0].object.userData.i:-1)});
+document.getElementById('spin').addEventListener('input',function(){spin=+this.value});
+
+var v=new THREE.Vector3();
+function tick(){
+  if(!drag)ry+=spin/9000;
+  root.rotation.y=ry;root.rotation.x=rx;
+  N.forEach(function(n,i){
+    v.fromArray(n.p).applyEuler(root.rotation).project(cam);
+    var x=(v.x*.5+.5)*W,y=(-v.y*.5+.5)*H,d=labels[i];
+    d.style.left=x+'px';d.style.top=(y-(n.k?42:46))+'px';
+    d.style.opacity=v.z<1?(hov===i?1:.78):0;
+    d.querySelector('small').textContent=hov===i?n.s:'';});
+  rn.render(sc,cam);requestAnimationFrame(tick);}
+tick();
+
+new ResizeObserver(function(){
+  var w=stage.clientWidth||820;if(w===W)return;W=w;
+  cam.aspect=W/H;cam.updateProjectionMatrix();rn.setSize(W,H);}).observe(stage);
+})();
+</script>
+</body>
+</html>
